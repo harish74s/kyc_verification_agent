@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>KYC Verification Agent</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+    <header class="header">
+
+        <div>
+            <h1>KYC Verification Agent</h1>
+            <p>AI-powered customer identity verification</p>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            SYSTEM ONLINE
+        </div>
+
+    </header>
+
+
+    <!-- INPUT SECTION -->
+    <section class="card">
+
+        <h2>Submit KYC Document</h2>
+
+        <div class="inputs">
+
+            <div class="input-group">
+
+                <label>Customer ID</label>
+
+                <input
+                    type="number"
+                    id="customerId"
+                    value="1"
+                    min="1"
+                >
+
+            </div>
+
+
+            <div class="input-group">
+
+                <label>Document Type</label>
+
+                <select id="documentType">
+
+                    <option value="PAN">PAN</option>
+                    <option value="AADHAAR">Aadhaar</option>
+                    <option value="ADDRESS_PROOF">
+                        Address Proof
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <!-- DROP ZONE -->
+
+        <div
+            class="drop-zone"
+            id="dropZone"
+        >
+
+            <div class="upload-icon">
+                📄
+            </div>
+
+            <h3>Drop KYC PDF here</h3>
+
+            <p>
+                or click to browse
+            </p>
+
+            <input
+                type="file"
+                id="fileInput"
+                accept=".pdf"
+                hidden
+            >
+
+            <button
+                id="browseBtn"
+                class="secondary-btn"
+            >
+                Browse PDF
+            </button>
+
+        </div>
+
+
+        <!-- FILE LIST -->
+
+        <div
+            id="fileList"
+            class="file-list"
+        ></div>
+
+
+        <button
+            id="verifyButton"
+            class="primary-btn"
+            disabled
+        >
+            VERIFY KYC DOCUMENT
+        </button>
+
+    </section>
+
+
+    <!-- LIVE PROCESSING -->
+
+    <section
+        id="processingCard"
+        class="card processing-card hidden"
+    >
+
+        <h2>Live Verification</h2>
+
+        <div class="steps">
+
+            <div
+                class="step"
+                id="stepUpload"
+            >
+                <span class="step-icon">○</span>
+                <span>Document uploaded</span>
+            </div>
+
+            <div
+                class="step"
+                id="stepExtract"
+            >
+                <span class="step-icon">○</span>
+                <span>Extracting KYC data</span>
+            </div>
+
+            <div
+                class="step"
+                id="stepDatabase"
+            >
+                <span class="step-icon">○</span>
+                <span>Checking customer database</span>
+            </div>
+
+            <div
+                class="step"
+                id="stepVerify"
+            >
+                <span class="step-icon">○</span>
+                <span>Comparing identity fields</span>
+            </div>
+
+            <div
+                class="step"
+                id="stepAI"
+            >
+                <span class="step-icon">○</span>
+                <span>AI risk analysis</span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- RESULTS -->
+
+    <section
+        id="resultsCard"
+        class="card hidden"
+    >
+
+        <div class="result-header">
+
+            <h2>Verification Results</h2>
+
+            <span
+                id="resultBadge"
+                class="badge"
+            >
+            </span>
+
+        </div>
+
+       
+        <div class="validation-grid">
+
+    <div class="validation-item">
+        <span>Name</span>
+        <strong id="nameResult">-</strong>
+    </div>
+
+    <div
+        class="validation-item"
+        id="dobValidation"
+    >
+        <span>Date of Birth</span>
+        <strong id="dobResult">-</strong>
+    </div>
+
+    <div
+        class="validation-item"
+        id="panValidation"
+    >
+        <span id="identityLabel">PAN</span>
+        <strong id="panResult">-</strong>
+    </div>
+
+    <div class="validation-item">
+        <span>Address</span>
+        <strong id="addressResult">-</strong>
+    </div>
+
+</div>
+
+
+        <!-- RISK -->
+
+        <div class="risk-section">
+
+            <div>
+
+                <span class="label">
+                    RISK SCORE
+                </span>
+
+                <div
+                    id="riskScore"
+                    class="risk-score"
+                >
+                    0
+                </div>
+
+            </div>
+
+            <div class="risk-bar-container">
+
+                <div
+                    id="riskBar"
+                    class="risk-bar"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- AI -->
+
+        <div class="ai-box">
+
+            <div class="ai-title">
+                🤖 AI ANALYSIS
+            </div>
+
+            <p id="aiExplanation">
+                -
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- ERROR -->
+
+    <div
+        id="errorMessage"
+        class="error hidden"
+    ></div>
+
+</div>
+
+<script src="/static/script.js"></script>
+
+</body>
+
+</html>
