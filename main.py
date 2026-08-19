@@ -1,6 +1,9 @@
 import os
 import shutil
 
+from attrs import fields
+from ai_explainer import generate_kyc_explanation
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from verification import verify_kyc
 from database import get_connection
@@ -8,12 +11,36 @@ from document_extractor import (
     extract_text_from_pdf,
     extract_kyc_fields
 )
+from pathlib import Path
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(
     title="KYC Verification Agent",
     description="AI-powered KYC verification backend",
     version="1.0"
+)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_DIR),
+    name="static"
+)
+
+@app.get("/")
+async def home():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -120,8 +147,15 @@ async def upload_kyc_document(
         )
 
     # Extract KYC fields
-    fields = extract_kyc_fields(extracted_text)
-
+    fields = extract_kyc_fields(extracted_text, document_type)
+    print("========== EXTRACTED KYC DATA ==========")
+    print("Document type:", document_type)
+    print("Name:", fields.get("name"))
+    print("DOB:", fields.get("dob"))
+    print("PAN:", fields.get("pan"))
+    print("Aadhaar last 4:", fields.get("aadhaar_last4"))
+    print("Address:", fields.get("address"))
+    print("========================================")
     # Store extracted data
     cursor.execute(
         """
@@ -133,10 +167,11 @@ async def upload_kyc_document(
             extracted_name,
             extracted_dob,
             extracted_pan,
+            extracted_aadhaar_last4,
             extracted_address,
             document_status
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             customer_id,
@@ -145,6 +180,7 @@ async def upload_kyc_document(
             fields["name"],
             fields["dob"],
             fields["pan"],
+            fields["aadhaar_last4"],
             fields["address"],
             "EXTRACTED"
         )
@@ -227,6 +263,7 @@ def verify_customer_kyc(
         customer,
         document
     )
+    ai_explanation = generate_kyc_explanation(result, document["document_type"])
 
     # Store verification result
     cursor.execute(
@@ -244,7 +281,7 @@ def verify_customer_kyc(
             final_status,
             reason
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
         """,
         (
             customer_id,
@@ -284,5 +321,6 @@ def verify_customer_kyc(
         "verification_id": verification_id,
         "customer_id": customer_id,
         "document_id": document_id,
-        "verification": result
+        "verification": result,
+        "ai_explanation": ai_explanation
     }

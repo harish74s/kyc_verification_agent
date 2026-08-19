@@ -32,6 +32,7 @@ def similarity(value1, value2):
 
 
 def verify_kyc(customer, document):
+    document_type = document["document_type"]
 
     name_match = exact_match(
         customer["full_name"],
@@ -42,10 +43,26 @@ def verify_kyc(customer, document):
         customer["dob"] == document["extracted_dob"]
     )
 
-    pan_match = exact_match(
-        customer["pan_number"],
-        document["extracted_pan"]
-    )
+    # Document-specific identity verification
+    pan_match = None
+    aadhaar_match = None
+
+    if document_type.upper() == "PAN":
+
+        pan_match = exact_match(
+            customer["pan_number"],
+            document["extracted_pan"]
+        )
+
+    elif document_type.upper() == "AADHAAR":
+
+        aadhaar_match = (
+            normalize_text(customer["aadhaar_last4"])
+            ==
+            normalize_text(
+                document["extracted_aadhaar_last4"]
+            )
+        )
 
     address_similarity = similarity(
         customer["address"],
@@ -64,7 +81,10 @@ def verify_kyc(customer, document):
     if not dob_match:
         risk_score += 25
 
-    if not pan_match:
+    if document_type.upper() == "PAN" and not pan_match:
+        risk_score += 30
+
+    if document_type.upper() == "AADHAAR" and not aadhaar_match:
         risk_score += 30
 
     if not address_match:
@@ -89,9 +109,11 @@ def verify_kyc(customer, document):
     if not dob_match:
         reasons.append("Date of birth mismatch")
 
-    if not pan_match:
+    if document_type.upper() == "PAN" and not pan_match:
         reasons.append("PAN mismatch")
 
+    if document_type.upper() == "AADHAAR" and not aadhaar_match:
+        reasons.append("Aadhaar mismatch")
     if not address_match:
         reasons.append(
             f"Address mismatch ({address_similarity}% similarity)"
@@ -107,6 +129,7 @@ def verify_kyc(customer, document):
         "name_match": name_match,
         "dob_match": dob_match,
         "pan_match": pan_match,
+        "aadhaar_match": aadhaar_match,
         "address_match": address_match,
         "address_similarity": address_similarity,
         "risk_score": risk_score,

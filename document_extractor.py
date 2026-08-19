@@ -17,17 +17,27 @@ def extract_text_from_pdf(file_path):
     return text
 
 
-def extract_kyc_fields(text):
+def extract_kyc_fields(text, document_type="PAN"):
+
     fields = {
         "name": None,
         "dob": None,
         "pan": None,
+        "aadhaar_last4": None,
         "address": None
     }
 
-    # Name
+    # Normalize extracted PDF text
+    text = text.replace("\r", "\n")
+
+    document_type = document_type.upper().strip()
+
+    # -------------------------
+    # NAME
+    # -------------------------
+
     name_match = re.search(
-        r"(?:Name|Full Name)\s*[:\-]\s*(.+)",
+        r"(?:Name|Full\s*Name)\s*[:\-]?\s*(.+?)(?:\n|$)",
         text,
         re.IGNORECASE
     )
@@ -35,44 +45,120 @@ def extract_kyc_fields(text):
     if name_match:
         fields["name"] = name_match.group(1).strip()
 
-    # Date of birth
+
+    # -------------------------
+    # DATE OF BIRTH
+    # -------------------------
+
     dob_match = re.search(
-        r"(?:DOB|Date of Birth|Birth Date)\s*[:\-]\s*([0-9]{2}[-/][0-9]{2}[-/][0-9]{4})",
+        r"(?:DOB|Date\s*of\s*Birth|Birth\s*Date)"
+        r"\s*[:\-]?\s*"
+        r"(\d{2}[-/]\d{2}[-/]\d{4}|\d{4}[-/]\d{2}[-/]\d{2})",
         text,
         re.IGNORECASE
     )
 
     if dob_match:
+
         dob_text = dob_match.group(1)
 
-        for fmt in ("%d-%m-%Y", "%d/%m/%Y"):
+        for fmt in (
+            "%d-%m-%Y",
+            "%d/%m/%Y",
+            "%Y-%m-%d",
+            "%Y/%m/%d"
+        ):
+
             try:
+
                 fields["dob"] = datetime.strptime(
                     dob_text,
                     fmt
                 ).date()
+
                 break
+
             except ValueError:
                 pass
 
+
+    # -------------------------
     # PAN
+    # -------------------------
+
     pan_match = re.search(
-        r"(?:PAN|PAN Number|PAN No)\s*[:\-]\s*([A-Z]{5}[0-9]{4}[A-Z])",
+        r"(?:PAN|PAN\s*Number|PAN\s*No\.?)"
+        r"\s*[:\-]?\s*"
+        r"([A-Z]{5}[0-9]{4}[A-Z])",
         text,
         re.IGNORECASE
     )
 
     if pan_match:
-        fields["pan"] = pan_match.group(1).upper()
 
-    # Address
+        fields["pan"] = (
+            pan_match.group(1)
+            .upper()
+        )
+
+
+    # -------------------------
+    # AADHAAR
+    # -------------------------
+
+    if document_type == "AADHAAR":
+
+        aadhaar_match = re.search(
+            r"(?:Aadhaar|Aadhaar\s*Number|Aadhaar\s*No\.?)"
+            r"\s*[:\-]?\s*"
+            r"([0-9]{4}\s*[0-9]{4}\s*[0-9]{4})",
+            text,
+            re.IGNORECASE
+        )
+
+        if aadhaar_match:
+
+            aadhaar_number = re.sub(
+                r"\s+",
+                "",
+                aadhaar_match.group(1)
+            )
+
+            fields["aadhaar_last4"] = (
+                aadhaar_number[-4:]
+            )
+
+        # PAN is irrelevant for Aadhaar
+        fields["pan"] = None
+
+
+    # -------------------------
+    # ADDRESS
+    # -------------------------
+
     address_match = re.search(
-        r"(?:Address)\s*[:\-]\s*(.+)",
+        r"(?:Address|Residential\s*Address|Current\s*Address)"
+        r"\s*[:\-]?\s*(.+?)(?:\n|$)",
         text,
         re.IGNORECASE
     )
 
     if address_match:
-        fields["address"] = address_match.group(1).strip()
+
+        fields["address"] = (
+            address_match.group(1)
+            .strip()
+        )
+
+
+    # -------------------------
+    # ADDRESS PROOF
+    # -------------------------
+
+    if document_type == "ADDRESS_PROOF":
+
+        fields["dob"] = None
+        fields["pan"] = None
+
 
     return fields
